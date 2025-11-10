@@ -24,9 +24,9 @@ class PolicyLabeler:
         scam_checks = 0
         post = post_from_url(self.client, url)
         ## Do our checks here, if X amount return True, we append the label of POTENTIAL_SCAM to the post
-        scam_checks += 1 if self.check_profile_for_potential_scam(post) else 0
-        scam_checks += 1 if self.check_post_for_emojis(post) else 0
-        if scam_checks >= 2:
+        scam_checks += self.check_profile_for_potential_scam(post)
+        scam_checks += self.check_post_for_emojis(post)
+        if scam_checks >= 3:
             return [POTENTIAL_SCAM]
         return []
 
@@ -73,27 +73,33 @@ class PolicyLabeler:
             elif posts_to_followers >= 10:
                 scam_score += 1
             
-            if scam_score >= 3:
-                return True
-            return False
+            # if scam_score >= 3:
+            #     return True
+            return scam_score
         except Exception as e:
             print(f"Error checking profile for scam: {e}")
-            return False
+            return 0
 
     def check_post_for_emojis(self, post: GetRecordResponse) -> bool:
         """
         Check if the post text contains many emojis (a pattern often used by scam accounts).
         """
+        scam_score = 0
         try:
             text = getattr(post.value, "text", "")
             # Count how many emoji characters appear in the post
             emoji_count = sum(char in emoji.EMOJI_DATA for char in text)
 
-            # Heuristic rule: 3 or more emojis => likely spammy/scammy style
-            if emoji_count >= 3:
-                print(f"[DEBUG] Found {emoji_count} emojis in post: {text}")
-                return True
-            return False
+            # Heuristic rule: 
+            if emoji_count <= 2:
+                scam_score = 0
+            elif 2 < emoji_count < 5:
+                scam_score = 1
+            else:  # emoji_count > 5
+                scam_score = 2
+            
+            return scam_score
+        
         except Exception as e:
             print(f"Error checking emojis in post: {e}")
-            return False
+            return 0
