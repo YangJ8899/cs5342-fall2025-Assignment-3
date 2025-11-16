@@ -87,6 +87,15 @@ class PolicyLabeler:
                 scam_score += 2
             elif posts_to_followers >= 10:
                 scam_score += 1
+
+            # Check for potential bot accounts
+            if posts >= 100 and followers < 5:
+                scam_score += 3
+            elif posts >= 50 and followers < 10:
+                scam_score += 2
+            elif posts >= 20 and followers < 5:
+                scam_score += 1
+        
             # print(scam_score)
             return scam_score
         except Exception as e:
