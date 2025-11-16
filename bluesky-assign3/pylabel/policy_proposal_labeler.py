@@ -16,6 +16,23 @@ POTENTIAL_SCAM = "Potential URL scam post"
 class PolicyLabeler:
     def __init__(self, client: Client, input_dir):
         self.client = client
+        self.load_input_dir(input_dir)
+
+    def load_input_dir(self, input_dir):
+        """
+        Load high-risk and moderate-risk phrases from the specified directory
+        """
+        # Load high-sus phrases
+        self.high_sus_phrases = [
+            phrase.lower()
+            for phrase in pd.read_csv(f"{input_dir}/high-sus-phrases.csv")["phrase"]
+        ]
+        
+        # Load medium-sus phrases
+        self.medium_sus_phrases = [
+            phrase.lower()
+            for phrase in pd.read_csv(f"{input_dir}/medium-sus-phrases.csv")["phrase"]
+        ]
    
     def moderate_post(self, url: str) -> List[str]:
         """
@@ -26,11 +43,13 @@ class PolicyLabeler:
         ## Do our checks here, if X amount return True, we append the label of POTENTIAL_SCAM to the post
         scam_checks += self.check_profile_for_potential_scam(post)
         scam_checks += self.check_post_for_emojis(post)
-        if scam_checks >= 3:
+        scam_checks += self.check_post_for_sus_language(post)
+
+        if scam_checks >= 5:
             return [POTENTIAL_SCAM]
         return []
 
-    def check_profile_for_potential_scam(self, post: GetRecordResponse) -> bool:
+    def check_profile_for_potential_scam(self, post: GetRecordResponse) -> int:
         """
         Check if the post author's profile exhibits scam-like characteristics, will not catch
         all accounts so thats why we need to do a cross check with the post content itself
@@ -50,9 +69,9 @@ class PolicyLabeler:
             # We check 2 patterns, follower to following ratio, and follower to post ratio
 
             # Following many, almost no followers (classic scam account)
-            if follow_ratio >= 10 and following >= 100:
+            if follow_ratio >= 10:
                 scam_score += 3
-            elif follow_ratio >= 5 and following >= 50:
+            elif follow_ratio >= 5:
                 scam_score += 2
 
             # Poor follow-back ratio (nobody trusts them)
@@ -72,15 +91,13 @@ class PolicyLabeler:
                 scam_score += 2
             elif posts_to_followers >= 10:
                 scam_score += 1
-            
-            # if scam_score >= 3:
-            #     return True
+
             return scam_score
         except Exception as e:
             print(f"Error checking profile for scam: {e}")
             return 0
 
-    def check_post_for_emojis(self, post: GetRecordResponse) -> bool:
+    def check_post_for_emojis(self, post: GetRecordResponse) -> int:
         """
         Check if the post text contains many emojis (a pattern often used by scam accounts).
         """
@@ -102,4 +119,39 @@ class PolicyLabeler:
         
         except Exception as e:
             print(f"Error checking emojis in post: {e}")
+            return 0
+    
+    def check_post_for_sus_language(self, post: GetRecordResponse) -> int:
+        """
+        Check if the post content contains scam-related keywords and phrases.
+        Returns a score (0-3) based on how suspicious the content is.
+        """
+        try:
+            text = getattr(post.value, "text", "").lower()
+            
+            if not text:
+                return 0
+            
+            scam_score = 0
+            
+            # If we have any phrases from the highest suspicious list, we return 3
+            for phrase in self.high_sus_phrases:
+                if phrase in text:
+                    return 3
+            
+            # We add 1 for every medium suspicious phrase, cap at 3
+            moderate_count = 0
+            for phrase in self.medium_sus_phrases:
+                if phrase in text:
+                    moderate_count += 1
+            
+            if moderate_count >= 3:
+                scam_score = 2
+            elif moderate_count >= 2:
+                scam_score = 1
+            
+            return min(scam_score, 3)  # Cap at 3
+            
+        except Exception as e:
+            print(f"Error checking post content for scam: {e}")
             return 0
