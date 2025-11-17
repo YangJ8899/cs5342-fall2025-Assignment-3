@@ -33,6 +33,14 @@ class PolicyLabeler:
             phrase.lower()
             for phrase in pd.read_csv(f"{input_dir}/medium-sus-phrases.csv")["phrase"]
         ]
+
+        # Load malicious phishing URLs
+        df = pd.read_csv(f"{input_dir}/malicious_phish.csv")
+        # Normalize URLs (strip protocol, lowercase)
+        self.malicious_urls = [
+            re.sub(r"^https?://", "", u.lower()).strip()
+            for u in df["url"].tolist()
+        ]
    
     def moderate_post(self, url: str) -> List[str]:
         """
@@ -44,7 +52,8 @@ class PolicyLabeler:
         scam_checks += self.check_profile_for_potential_scam(post)
         scam_checks += self.check_post_for_emojis(post)
         scam_checks += self.check_post_for_sus_language(post)
-
+        scam_checks += self.check_post_for_malicious_urls(post) 
+        
         if scam_checks >= 5:
             return [POTENTIAL_SCAM]
         return []
@@ -170,4 +179,34 @@ class PolicyLabeler:
             
         except Exception as e:
             print(f"Error checking post content for scam: {e}")
+            return 0
+        
+    def check_post_for_malicious_urls(self, post: GetRecordResponse) -> int:
+        """
+        Check if the Bluesky post text references any URL contained in malicious_phish.csv.
+        Returns 3 points if a malicious URL is detected.
+        """
+        try:
+            text = getattr(post.value, "text", "") or ""
+            text = text.lower()
+
+            # Extract URLs from the post text
+            urls_in_post = re.findall(r'https?://[^\s]+', text)
+
+            # Normalize post URLs by stripping protocol
+            normalized_urls = [
+                re.sub(r'^https?://', '', url).strip()
+                for url in urls_in_post
+            ]
+
+            # Check for matches
+            for post_url in normalized_urls:
+                for bad_url in self.malicious_urls:
+                    if bad_url in post_url:
+                        return 3  # Maximum risk score
+
+            return 0
+
+        except Exception as e:
+            print(f"Error checking malicious URLs: {e}")
             return 0
