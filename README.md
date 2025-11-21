@@ -200,7 +200,7 @@ SYNTHETIC_051,["Potential URL scam post"]
 ## Project Structure
 ```
 bluesky-assign3/
-├── labeler-data/
+├── labeler-inputs/
 │   ├── medium-sus-phrases.csv       # Suspicious phrase dictionary
 │   ├── malicious_phish.csv          # Known malicious URLs
 │   └── synthetic_posts.json         # Synthetic test cases
