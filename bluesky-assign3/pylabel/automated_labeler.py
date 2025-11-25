@@ -1,9 +1,5 @@
 """Implementation of automated moderator"""
 
-<<<<<<< HEAD
-from typing import List
-from atproto import Client
-=======
 from pathlib import Path
 from typing import List
 
@@ -13,7 +9,6 @@ from atproto_client.models.app.bsky.feed.post import GetRecordResponse
 
 from perception import hashers
 from .label import post_from_url, images_from_post
->>>>>>> myrepo/main
 
 T_AND_S_LABEL = "t-and-s"
 DOG_LABEL = "dog"
@@ -24,8 +19,6 @@ class AutomatedLabeler:
 
     def __init__(self, client: Client, input_dir):
         self.client = client
-<<<<<<< HEAD
-=======
         self.load_input_dir(input_dir)
 
     def load_input_dir(self, input_dir):
@@ -47,15 +40,11 @@ class AutomatedLabeler:
         self.phashes = []
         for path in Path(f"{input_dir}/dog-list-images").iterdir():
             self.phashes.append(hasher.compute(str(path)))
->>>>>>> myrepo/main
    
     def moderate_post(self, url: str) -> List[str]:
         """
         Apply moderation to the post specified by the given url
         """
-<<<<<<< HEAD
-        return []
-=======
         result = []
         post = post_from_url(self.client, url)
         result += self.check_t_and_s_words_domains(post)
@@ -100,4 +89,3 @@ class AutomatedLabeler:
                 if hasher.compute_distance(post_image_hash, dog_hash) <= THRESH:
                     return [DOG_LABEL]
         return []
->>>>>>> myrepo/main

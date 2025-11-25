@@ -9,10 +9,7 @@ from atproto import Client
 from dotenv import load_dotenv
 
 from pylabel import AutomatedLabeler, label_post, did_from_handle
-<<<<<<< HEAD
-=======
 from pylabel.policy_proposal_labeler import PolicyLabeler
->>>>>>> myrepo/main
 
 load_dotenv(override=True)
 USERNAME = os.getenv("USERNAME")
@@ -36,11 +33,7 @@ def main():
     if args.emit_labels:
         labeler_client = client.with_proxy("atproto_labeler", did)
 
-<<<<<<< HEAD
-    labeler = AutomatedLabeler(client, args.labeler_inputs_dir)
-=======
     labeler = PolicyLabeler(client, args.labeler_inputs_dir)
->>>>>>> myrepo/main
 
     urls = pd.read_csv(args.input_urls)
     num_correct, total = 0, urls.shape[0]
